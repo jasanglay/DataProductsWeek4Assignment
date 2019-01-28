@@ -1,0 +1,74 @@
+---
+title: Chick Weight Prediction Model
+author: "John Paul Sanglay"
+date: "January 28, 2019"
+output: ioslides_presentation
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=F,warning=F,message=F)
+knitr::opts_chunk$set(fig.width=7, fig.height=4) 
+```
+## Introduction
+The application predicts the chick body weight given its age in days and type of diet. Data is retrieved from the built-in data set 'ChickWeight', which comprises of 578 rows and 4 columns.
+
+The application's inputs are the initial chick weight, chick age, and type of diet. Afterwards, it plots the points of the data set with similar diet, model fit line, and chick weight. Also, it prints the value of the predicted chick weight.
+
+Shiny application is found on this link: <https://bit.ly/2UkiPOV>
+
+R codes are found on this link: <https://bit.ly/2Rl1yDo>
+
+## Code Algorithm
+The application calculates the predicted chick weight from a linear model of the built-in data set 'ChickWeight'.
+
+1. The code returns a column, which gives the ratio of weight at any given time and weight at time zero of each sample chick. The logarithmic values of this column is set as the 'Increase' variable.
+
+2. The code fits a linear model for 'Increase' based on 'Time' and 'Diet' variables.
+
+3. The input values of chick age and diet is used to predict the new chick weight value using the linear model then the resulting answer is evaluated using the exponential function and multiplied with the input value of initial chick weight.
+
+## Sample Calculation
+
+### **Input**
+
+```{r}
+input <- data.frame(cbind(40,15,1))
+colnames(input) <- c("wt","t","d")
+input
+```
+
+'t' variable is the chick age in days, 'd' variable is the type of diet, and 'wt' is the chick weight at time zero in grams.
+
+### **Ouput**
+
+```{r}
+library(plyr)
+data("ChickWeight")
+df <- ChickWeight
+zero.weight <- df[df$Time==0,]$weight
+ratio <- function(x,y){
+        A <- x/zero.weight[as.numeric(as.character(y))]
+        return(A)
+}
+Increase <- log(mapply(ratio,df$weight,df$Chick))
+df <- cbind(df,Increase)
+model <- lm(Increase~Time+Diet,data=df)
+df.in <- data.frame(cbind(Time=input$t,Diet=input$d))
+df.in$Diet <- as.factor(df.in$Diet)
+new.val <- input$wt*exp(predict.lm(model,df.in))
+new.val
+```
+
+The output value is the predicted chick weight in grams.
+
+## Sample Plot
+```{r}
+df.plot <- subset(df,Diet==input$d)
+mod.plot <- data.frame(cbind(0:21,rep(as.numeric(input$d),22)))
+mod.plot[,2] <- as.factor(mod.plot[,2]); colnames(mod.plot) <- c("Time","Diet")
+mod.line <- input$wt*exp(predict.lm(model,mod.plot))
+plot(x=df.plot$Time,y=df.plot$weight,col=df.plot$Chick,xlab="Time (day)",ylab="Weight (g)",main="Chick Weight Growth for 21 Days")
+lines(mod.plot$Time,mod.line,lwd=1.5)
+points(input$t,new.val,pch=16,cex=1.5,col="black")
+```
+
+The plot shows points from 'ChickWeight' with the same diet, model evaluated at different chick ages, and the calculated predicted chick weight.
